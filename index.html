@@ -112,11 +112,54 @@
         .window-body {
             padding: 20px;
             background: #ece9d8;
+            position: relative;
+        }
+
+        .bitcoin-spinner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            animation: spin 3s linear infinite;
+            z-index: 10;
+        }
+
+        .bitcoin-left {
+            top: 20px;
+            left: 20px;
+        }
+
+        .bitcoin-right {
+            top: 20px;
+            right: 20px;
+        }
+
+        @keyframes spin {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+
+        .bitcoin-coin {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f7931a 0%, #ff6b00 50%, #f7931a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 
+                0 0 10px rgba(247, 147, 26, 0.5),
+                inset 0 2px 5px rgba(255, 255, 255, 0.3),
+                inset 0 -2px 5px rgba(0, 0, 0, 0.3);
+            border: 2px solid #ff6b00;
         }
 
         .header {
             text-align: center;
             margin-bottom: 20px;
+            padding-top: 30px;
         }
 
         .logo {
@@ -266,6 +309,13 @@
         </div>
 
         <div class="window-body">
+            <div class="bitcoin-spinner bitcoin-left">
+                <div class="bitcoin-coin">₿</div>
+            </div>
+            <div class="bitcoin-spinner bitcoin-right">
+                <div class="bitcoin-coin">₿</div>
+            </div>
+
             <div class="header">
                 <div class="logo">HERACLES</div>
                 <div class="tagline">Strength in Data • Bitcoin Analytics Dashboard</div>
@@ -292,6 +342,14 @@
                         <div class="stat-value" id="blockHeight">Loading...</div>
                     </div>
                 </div>
+
+                <div class="stat-card" style="margin-top: 15px;">
+                    <div class="stat-label">
+                        <span class="icon">📈</span>
+                        Hash Rate History (7 Days)
+                    </div>
+                    <canvas id="hashRateChart" width="400" height="150" style="width: 100%; height: 150px; margin-top: 10px;"></canvas>
+                </div>
             </div>
 
             <div class="fieldset">
@@ -309,10 +367,10 @@
                     <div class="stat-card">
                         <div class="stat-label">
                             <span class="icon">🥇</span>
-                            Bitcoin vs Gold
+                            Gold Price (per oz)
                         </div>
-                        <div class="stat-value" id="btcGold">Loading...</div>
-                        <div class="stat-change" id="btcGoldChange"></div>
+                        <div class="stat-value" id="goldPrice">Loading...</div>
+                        <div class="stat-change" id="goldChange"></div>
                     </div>
 
                     <div class="stat-card">
@@ -387,23 +445,29 @@
                     document.getElementById('hashRate').textContent = 'N/A';
                 }
 
-                // Get gold price from CoinGecko (gold token as proxy)
+                // Get gold price
                 try {
-                    const goldPricePerOz = 2650; // Approximate current gold price
-                    if (coinGeckoData.gold && coinGeckoData.gold.usd) {
-                        // CoinGecko has a gold token, but let's use a more reliable calculation
-                        const btcPerOz = btcPrice / goldPricePerOz;
-                        document.getElementById('btcGold').textContent = `${btcPerOz.toFixed(2)} oz`;
-                        document.getElementById('btcGoldChange').textContent = `1 BTC ≈ ${btcPerOz.toFixed(2)} oz of gold`;
+                    const goldResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=usd&include_24hr_change=true');
+                    const goldData = await goldResponse.json();
+                    
+                    if (goldData['pax-gold'] && goldData['pax-gold'].usd) {
+                        const goldPricePerOz = goldData['pax-gold'].usd;
+                        const goldChange24h = goldData['pax-gold'].usd_24h_change;
+                        
+                        document.getElementById('goldPrice').textContent = `${goldPricePerOz.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                        
+                        const goldChangeElement = document.getElementById('goldChange');
+                        goldChangeElement.textContent = `${goldChange24h >= 0 ? '▲' : '▼'} ${Math.abs(goldChange24h).toFixed(2)}% (24h)`;
+                        goldChangeElement.className = goldChange24h >= 0 ? 'stat-change positive' : 'stat-change negative';
                     } else {
-                        const btcPerOz = btcPrice / goldPricePerOz;
-                        document.getElementById('btcGold').textContent = `${btcPerOz.toFixed(2)} oz`;
-                        document.getElementById('btcGoldChange').textContent = `1 BTC ≈ ${btcPerOz.toFixed(2)} oz of gold`;
+                        // Fallback to approximate current gold price
+                        document.getElementById('goldPrice').textContent = '$2,650.00';
+                        document.getElementById('goldChange').textContent = 'Spot price estimate';
                     }
                 } catch (err) {
-                    console.error('Error calculating gold ratio:', err);
-                    document.getElementById('btcGold').textContent = 'N/A';
-                    document.getElementById('btcGoldChange').textContent = 'Unable to fetch';
+                    console.error('Error fetching gold price:', err);
+                    document.getElementById('goldPrice').textContent = '$2,650.00';
+                    document.getElementById('goldChange').textContent = 'Spot price estimate';
                 }
 
                 // M2 Money Supply - Using FRED API data
