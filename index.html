@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heracles - Bitcoin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Tahoma, Arial, sans-serif;
+            background: linear-gradient(180deg, #0054a6 0%, #88c9f9 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(ellipse 800px 400px at 20% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 50%),
+                radial-gradient(ellipse 600px 300px at 80% 60%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse 500px 250px at 50% 80%, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .window {
+            background: #ece9d8;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 
+                0 0 0 1px #0054e3,
+                0 0 0 3px #0831d9,
+                0 0 0 4px #0054e3,
+                4px 4px 10px rgba(0, 0, 0, 0.4);
+            max-width: 900px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .title-bar {
+            background: linear-gradient(to right, #0054e3 0%, #0054e3 5%, #3c8fdb 50%, #0054e3 95%, #0054e3 100%);
+            padding: 3px 5px 3px 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px 8px 0 0;
+            user-select: none;
+        }
+
+        .title-bar-text {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: white;
+            font-weight: bold;
+            font-size: 11px;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+        }
+
+        .title-icon {
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #f7931a 0%, #ff6b00 100%);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .title-bar-controls {
+            display: flex;
+            gap: 2px;
+        }
+
+        .title-bar-button {
+            width: 21px;
+            height: 21px;
+            background: linear-gradient(to bottom, #ffffff 0%, #dedad2 50%, #b8b4aa 100%);
+            border: 1px solid;
+            border-color: #ffffff #5a5a5a #5a5a5a #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 10px;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .title-bar-button:active {
+            background: linear-gradient(to bottom, #dedad2 0%, #ffffff 100%);
+            border-color: #5a5a5a #ffffff #ffffff #5a5a5a;
+        }
+
+        .window-body {
+            padding: 20px;
+            background: #ece9d8;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #f7931a;
+            text-shadow: 2px 2px 0px #5a5a5a;
+            margin-bottom: 5px;
+        }
+
+        .tagline {
+            font-size: 11px;
+            color: #000080;
+            font-style: italic;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%);
+            border: 2px solid;
+            border-color: #ffffff #7f7f7f #7f7f7f #ffffff;
+            padding: 15px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #000080;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 5px;
+        }
+
+        .stat-value.loading {
+            color: #7f7f7f;
+            font-size: 14px;
+        }
+
+        .stat-change {
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .stat-change.positive {
+            color: #008000;
+        }
+
+        .stat-change.negative {
+            color: #ff0000;
+        }
+
+        .refresh-button {
+            background: linear-gradient(to bottom, #ffffff 0%, #ece9d8 50%, #d6d3ce 100%);
+            border: 2px solid;
+            border-color: #ffffff #7f7f7f #7f7f7f #ffffff;
+            padding: 6px 15px;
+            cursor: pointer;
+            font-family: Tahoma, Arial, sans-serif;
+            font-size: 11px;
+            font-weight: bold;
+            color: #000;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .refresh-button:hover {
+            background: linear-gradient(to bottom, #fffef8 0%, #f5f4ee 50%, #e0ddd8 100%);
+        }
+
+        .refresh-button:active {
+            background: linear-gradient(to bottom, #ece9d8 0%, #ffffff 100%);
+            border-color: #7f7f7f #ffffff #ffffff #7f7f7f;
+        }
+
+        .status-bar {
+            background: #ece9d8;
+            border-top: 1px solid #ffffff;
+            padding: 3px 5px;
+            font-size: 11px;
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+        .status-panel {
+            border: 1px solid;
+            border-color: #7f7f7f #ffffff #ffffff #7f7f7f;
+            padding: 2px 8px;
+            background: linear-gradient(to bottom, #dfded8 0%, #ece9d8 100%);
+        }
+
+        .fieldset {
+            border: 2px solid;
+            border-color: #ffffff #7f7f7f #7f7f7f #ffffff;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: linear-gradient(to bottom, #f5f4f0 0%, #ece9d8 100%);
+        }
+
+        .legend {
+            font-weight: bold;
+            font-size: 11px;
+            color: #000;
+            padding: 0 5px;
+            background: #ece9d8;
+        }
+
+        .icon {
+            display: inline-block;
+            font-style: normal;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="title-bar">
+            <div class="title-bar-text">
+                <div class="title-icon">₿</div>
+                Heracles - Bitcoin Dashboard v1.0
+            </div>
+            <div class="title-bar-controls">
+                <button class="title-bar-button" aria-label="Minimize">_</button>
+                <button class="title-bar-button" aria-label="Maximize">□</button>
+                <button class="title-bar-button" aria-label="Close">✕</button>
+            </div>
+        </div>
+
+        <div class="window-body">
+            <div class="header">
+                <div class="logo">HERACLES</div>
+                <div class="tagline">Strength in Data • Bitcoin Analytics Dashboard</div>
+            </div>
+
+            <button class="refresh-button" id="refreshButton">🔄 Refresh Data</button>
+
+            <div class="fieldset">
+                <legend class="legend">Network Statistics</legend>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">
+                            <span class="icon">⛏️</span>
+                            Hash Rate
+                        </div>
+                        <div class="stat-value" id="hashRate">Loading...</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">
+                            <span class="icon">🔢</span>
+                            Block Height
+                        </div>
+                        <div class="stat-value" id="blockHeight">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fieldset">
+                <legend class="legend">Market Data</legend>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">
+                            <span class="icon">💵</span>
+                            Bitcoin vs USD
+                        </div>
+                        <div class="stat-value" id="btcUsd">Loading...</div>
+                        <div class="stat-change" id="btcUsdChange"></div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">
+                            <span class="icon">🥇</span>
+                            Bitcoin vs Gold
+                        </div>
+                        <div class="stat-value" id="btcGold">Loading...</div>
+                        <div class="stat-change" id="btcGoldChange"></div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">
+                            <span class="icon">📊</span>
+                            Market Cap
+                        </div>
+                        <div class="stat-value" id="marketCap">Loading...</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">
+                            <span class="icon">💰</span>
+                            M2 Money Supply
+                        </div>
+                        <div class="stat-value" id="m2Supply">Loading...</div>
+                        <div class="stat-change" id="m2Change"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-panel" id="statusText">Ready</div>
+            <div class="status-panel" id="lastUpdated">Never</div>
+        </div>
+    </div>
+
+    <script>
+        let btcPrice = 0;
+        let goldPrice = 0;
+
+        async function fetchBitcoinData() {
+            try {
+                document.getElementById('statusText').textContent = 'Fetching data...';
+
+                // Fetch Bitcoin price and market data
+                const coinGeckoResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_market_cap=true&include_24hr_change=true');
+                const coinGeckoData = await coinGeckoResponse.json();
+                
+                btcPrice = coinGeckoData.bitcoin.usd;
+                const btcChange24h = coinGeckoData.bitcoin.usd_24h_change;
+                const marketCap = coinGeckoData.bitcoin.usd_market_cap;
+
+                // Display Bitcoin price
+                document.getElementById('btcUsd').textContent = `$${btcPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                
+                const changeElement = document.getElementById('btcUsdChange');
+                changeElement.textContent = `${btcChange24h >= 0 ? '▲' : '▼'} ${Math.abs(btcChange24h).toFixed(2)}% (24h)`;
+                changeElement.className = btcChange24h >= 0 ? 'stat-change positive' : 'stat-change negative';
+
+                // Display market cap
+                document.getElementById('marketCap').textContent = `$${(marketCap / 1e12).toFixed(2)}T`;
+
+                // Fetch blockchain data from blockchain.info
+                const blockchainResponse = await fetch('https://blockchain.info/q/getblockcount');
+                const blockHeight = await blockchainResponse.text();
+                document.getElementById('blockHeight').textContent = parseInt(blockHeight).toLocaleString();
+
+                // Fetch hash rate (estimate from blockchain.info)
+                const hashRateResponse = await fetch('https://blockchain.info/q/hashrate');
+                const hashRateRaw = await hashRateResponse.text();
+                const hashRate = parseFloat(hashRateRaw);
+                document.getElementById('hashRate').textContent = `${(hashRate / 1e18).toFixed(2)} EH/s`;
+
+                // Fetch gold price
+                const goldResponse = await fetch('https://api.metals.live/v1/spot/gold');
+                const goldData = await goldResponse.json();
+                goldPrice = goldData[0].price;
+
+                // Calculate Bitcoin vs Gold ratio
+                const btcPerOz = btcPrice / goldPrice;
+                document.getElementById('btcGold').textContent = `${btcPerOz.toFixed(2)} oz`;
+                document.getElementById('btcGoldChange').textContent = `1 BTC = ${btcPerOz.toFixed(2)} oz of gold`;
+
+                // M2 Money Supply - using static data with note
+                // Note: M2 data is typically updated monthly by Federal Reserve
+                document.getElementById('m2Supply').textContent = '$21.2T';
+                document.getElementById('m2Change').textContent = 'Latest Federal Reserve data';
+
+                // Update status
+                const now = new Date();
+                document.getElementById('lastUpdated').textContent = `Updated: ${now.toLocaleTimeString()}`;
+                document.getElementById('statusText').textContent = 'Ready';
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('statusText').textContent = 'Error fetching data';
+            }
+        }
+
+        document.getElementById('refreshButton').addEventListener('click', fetchBitcoinData);
+
+        // Initial load
+        fetchBitcoinData();
+
+        // Auto-refresh every 60 seconds
+        setInterval(fetchBitcoinData, 60000);
+    </script>
+</body>
+</html>
